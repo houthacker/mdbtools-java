@@ -6,11 +6,15 @@ public class MDBStatistics {
     private long pageReads;
     
     public MDBStatistics() {
-	collect = false;
-	pageReads = 0L;
+		this(false);
+    }
+    
+    public MDBStatistics(boolean collect) {
+    	pageReads = 0L;
+    	this.collect = collect;
     }
 
-    public boolean isCollect() {
+    public boolean mustCollect() {
         return collect;
     }
 
@@ -21,10 +25,13 @@ public class MDBStatistics {
     public long getPageReads() {
         return pageReads;
     }
+    
+    public void incrementPageReads() {
+    	pageReads++;
+    }
 
     public void setPageReads(long pageReads) {
         this.pageReads = pageReads;
     }
-    
     
 }

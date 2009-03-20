@@ -18,10 +18,10 @@ public enum EMDBEntity {
     private final int identity;
     
     EMDBEntity(int identifier) {
-	this.identity = identifier;
+    	this.identity = identifier;
     }
     
     public int getIdentity() {
-	return identity;
+    	return identity;
     }
 }

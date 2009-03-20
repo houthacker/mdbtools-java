@@ -1,13 +1,13 @@
 package nl.coenbijlsma.mdbtools;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 
 public class MDBBackend {
 
-    private ArrayList<MDBBackendType> types;
+    private HashSet<MDBBackendType> types;
     
     public MDBBackend(){
-	types = new ArrayList<MDBBackendType>();
+	types = new HashSet<MDBBackendType>();
 	types.add(new MDBBackendType("Unknown 0x00", false, false, false));
 	types.add(new MDBBackendType("Boolean", false, false, false));
 	types.add(new MDBBackendType("Byte", false, false, false));
@@ -28,15 +28,21 @@ public class MDBBackend {
 	
     }
 
-    public ArrayList<MDBBackendType> getTypes() {
+    public HashSet<MDBBackendType> getTypes() {
         return types;
     }
 
-    public void setTypes(ArrayList<MDBBackendType> types) {
+    public void setTypes(HashSet<MDBBackendType> types) {
         this.types = types;
     }
     
-    
+    public MDBBackendType getTypeByName(String name) {
+    	for( MDBBackendType type : types ) {
+    		if(type.getName().equalsIgnoreCase(name) ) {
+    			return type;
+    		}
+    	}
+    	return null;
+    }
 
-    
 }

@@ -1,5 +1,6 @@
 package nl.coenbijlsma.mdbtools;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class MDBHandle {
@@ -14,7 +15,7 @@ public class MDBHandle {
     public static final int MDB_MAX_INDEX_DEPTH = 10;
     
     private MDBFile mdbFile;
-    private int currentPage;
+    private long currentPage;
     private int rowNumber;
     private long currentPosition;
     private byte[] pageBuffer;
@@ -27,33 +28,66 @@ public class MDBHandle {
     private MDBStatistics stats;
     
     public MDBHandle(MDBFile file){
-	pageBuffer = new byte[MDB_PGSIZE];
-	alternatePageBuffer = new byte[MDB_PGSIZE];
-	catalog = new ArrayList<Integer>();
-	mdbFile = file;
-	mdbFile.addHandle(this);
+		pageBuffer = new byte[MDB_PGSIZE];
+		alternatePageBuffer = new byte[MDB_PGSIZE];
+		catalog = new ArrayList<Integer>();
+		mdbFile = file;
+		mdbFile.addHandle(this);
+		stats = new MDBStatistics(true);
     }
-    
+	    
     public MDBHandle clone(){
-	MDBHandle clone = new MDBHandle(mdbFile);
-		
-	return clone;
+		MDBHandle clone = new MDBHandle(mdbFile);
+			
+		return clone;
     }
     
     public void close() {
-	mdbFile.removeHandle(this);
-	// TODO flush buffers or something?
+		mdbFile.removeHandle(this);
+		// TODO flush buffers or something?
+    }
+    
+    public byte[] readPage(int page, boolean alternate) throws IOException {
+    	// Throw an IOException if the page is before the BOF
+    	if( page < 0L ){
+    		throw new IOException("Page " + page + " is before BOF");
+    	}
+    	
+    	long offset = page * MDBHandle.MDB_PGSIZE;
+    	
+    	// Throw an IOException if the offset is beyond the EOF
+    	if( mdbFile.getFile().length() < offset ){
+    		throw new IOException("Page " + page + " is beyond EOF");
+    	}
+    	
+    	byte[] retval = null;
+    	if( alternate ) {
+    		retval = clearAlternateBuffer();
+    	} else {
+    		retval = clearBuffer();
+    	}
+		
+		mdbFile.getFile().seek(offset);
+		mdbFile.getFile().read(retval);
+		
+		// Update the statistics
+		MDBStatistics stats = mdbFile.getStats();
+		if( stats.mustCollect() ) {
+			stats.incrementPageReads();
+		}
+		
+		return retval;
     }
 
     public MDBFile getMdbFile() {
         return mdbFile;
     }
 
-    public int getCurrentPage() {
+    public long getCurrentPage() {
         return currentPage;
     }
 
-    public void setCurrentPage(int currentPage) {
+    public void setCurrentPage(long currentPage) {
         this.currentPage = currentPage;
     }
 
@@ -80,6 +114,12 @@ public class MDBHandle {
     public void setPageBuffer(byte[] pageBuffer) {
         this.pageBuffer = pageBuffer;
     }
+    
+    public byte[] clearBuffer() {
+    	pageBuffer = null;
+    	pageBuffer = new byte[MDB_PGSIZE];
+    	return pageBuffer;
+    }
 
     public byte[] getAlternatePageBuffer() {
         return alternatePageBuffer;
@@ -87,6 +127,36 @@ public class MDBHandle {
 
     public void setAlternatePageBuffer(byte[] alternatePageBuffer) {
         this.alternatePageBuffer = alternatePageBuffer;
+    }
+    
+    public byte[] clearAlternateBuffer() {
+    	alternatePageBuffer = null;
+    	alternatePageBuffer = new byte[MDB_PGSIZE];
+    	return alternatePageBuffer;
+    }
+    
+    public void swapBuffer() {
+    	if( pageBuffer == null || alternatePageBuffer == null ) {
+    		return;
+    	}
+    	
+    	byte[] temp = new byte[MDB_PGSIZE];
+    	
+    	// Copy the page buffer into the temp buffer
+    	for( int i = 0; i < MDB_PGSIZE; i++ ) {
+    		temp[i] = pageBuffer[i];
+    	}
+    	
+    	// Copy the alternate buffer into the page buffer
+    	for( int i = 0; i < MDB_PGSIZE; i++ ) {
+    		pageBuffer[i] = alternatePageBuffer[i];
+    	}
+    	
+    	// Copy the temp buffer into the alternate buffer
+    	for( int i = 0; i < MDB_PGSIZE; i++ ) {
+    		alternatePageBuffer[i] = temp[i];
+    	}
+    	
     }
 
     public long getCatalogNumber() {
@@ -137,5 +207,16 @@ public class MDBHandle {
         this.stats = stats;
     }
     
+    public MDBTable getTableByName(String name, EMDBEntity entityType) {
+    	// TODO
+    	int i = 0;
+    	MDBCatalogEntry entry = new MDBCatalogEntry();
+    	
+    	// TODO mdb_read_catalog
+    	return null;
+    }
     
+    public void dumpStats() {
+    	System.out.println("Physical Page Reads: " + stats.getPageReads());
+    }
 }

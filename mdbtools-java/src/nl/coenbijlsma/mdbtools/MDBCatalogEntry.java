@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 public class MDBCatalogEntry {
 
+	private static String[] typeNames;
+	
     private MDBHandle handle;
     private String objectName;
     private int objectType;
@@ -15,9 +17,25 @@ public class MDBCatalogEntry {
     private ArrayList<Object> columns;
     private int flags;
     
+    static {
+    	typeNames = new String[] {"Form"
+    			, "Table"
+    			, "Macro"
+    			, "System Table"
+    			, "Report"
+    			, "Query"
+    			, "Linked Table"
+    			, "Module"
+    			, "Relationship"
+    			, "Unknown 0x09"
+    			, "Unknown 0x0a"
+    			, "Database"};
+    	
+    }
+    
     public MDBCatalogEntry(){
-	properties = new ArrayList<Object>();
-	columns = new ArrayList<Object>();
+		properties = new ArrayList<Object>();
+		columns = new ArrayList<Object>();
     }
 
     public MDBHandle getHandle() {
@@ -100,5 +118,10 @@ public class MDBCatalogEntry {
         this.flags = flags;
     }
     
-    
+    public String getTypeName(int type) {
+    	if( type < 0 || type > 11 ) {
+    		return null;
+    	}
+    	return typeNames[type];
+    }
 }

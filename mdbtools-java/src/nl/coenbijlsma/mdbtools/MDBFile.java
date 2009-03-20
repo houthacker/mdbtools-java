@@ -1,17 +1,13 @@
 package nl.coenbijlsma.mdbtools;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.HashSet;
-
-import nl.coenbijlsma.mdbtools.exceptions.IllegalOffsetException;
-import nl.coenbijlsma.mdbtools.tools.Tools;
 
 public class MDBFile {
 
-    private File file;
+	private String filename;
+    private RandomAccessFile file;
     private EMDBJetVersion jetVersion;
     private int databaseKey;
     private char[] databasePassword;
@@ -26,27 +22,28 @@ public class MDBFile {
     
     private static final int jetVersionOffset = 0x14;
     
-    private  FileInputStream fis;
-    private  FileOutputStream fos;
-    
     public MDBFile(String filename) throws IOException {
-	this.file = new File(filename);
-	handles = new HashSet<MDBHandle>();
+    	if( filename == null || filename.trim().length() == 0 ) {
+    		throw new IOException("Empty filename not allowed");
+    	}
+    	
+		handles = new HashSet<MDBHandle>();
+		this.filename = filename;
     }
     
     public void addHandle(MDBHandle handle){
-	handles.add(handle);
+    	handles.add(handle);
     }
     
     public void removeHandle(MDBHandle handle){
-	handles.remove(handle);
+    	handles.remove(handle);
     }
 
-    public File getFile() {
+    public RandomAccessFile getFile() {
         return file;
     }
 
-    public void setFile(File file) {
+    public void setFile(RandomAccessFile file) {
         this.file = file;
     }
 
@@ -122,77 +119,54 @@ public class MDBFile {
     //			END OF GETTERS AND SETTERS                           //
     ///////////////////////////////////////////////////////////////////////////
     
-    public FileInputStream getFileInputStream() {
-	return fis;
-    }
-    
-    public FileOutputStream getFileOutputStream() {
-	return fos;
-    }
-    
     /**
      * Opens the MDB file and returns the {@code MDBHandle} 
      */
     public MDBHandle open(EMDBFileFlag flags) throws IOException {
-	this.fis = new FileInputStream(file);
-	
-	if( flags == EMDBFileFlag.MDB_WRITABLE){
-	    this.fos = new FileOutputStream(file);
-	}
-	
-	MDBHandle mdb = new MDBHandle(this);
-	
-	byte[] bytes = readPage(mdb);
-	try{
-	    int jetVersion = Tools.toInt(bytes, jetVersionOffset);
+		if( flags == EMDBFileFlag.MDB_WRITABLE){
+		    this.file = new RandomAccessFile(filename, "rws");
+		}else {
+			this.file = new RandomAccessFile(filename, "r");
+		}
+		
+		MDBHandle mdb = new MDBHandle(this);
+
+		file.seek((long)jetVersionOffset);
+	    int jetVersion = file.readInt();
 	    
 	    EMDBJetVersion version = EMDBJetVersion.byValue(jetVersion);
 	    
 	    switch(version){
 	    case MDB_JET4:
-		mdb.setFormat(MDBFormat.VERSION4);
-		return mdb;
+	    	mdb.setFormat(MDBFormat.VERSION4);
+	    	return mdb;
 	    case MDB_JET3:
-		mdb.setFormat(MDBFormat.VERSION3);
-		return mdb;
+	    	mdb.setFormat(MDBFormat.VERSION3);
+	    	return mdb;
 		default:
-		    throw new IOException("Invalid Jet version");
+		    throw new IOException("Invalid Jet version: " + jetVersion);
 	    }
-	}catch(IllegalOffsetException ex){
-	    throw new IOException("Could not read Jet version", ex);
-	}
+	    	    
     }
         
     public void close() throws IOException {
-	// Close all the references to this file
-	for(MDBHandle handle : handles){
-	    handle.close();
-	}
-	
-	if( fis != null ){
-	    fis.close();
-	    fis = null;
-	}
-	if( fos != null ){
-	    fos.close();
-	    fos = null;
-	}
-	
-    }
-    
-    private byte[] readPage(MDBHandle handle) throws IOException {
-	
-	byte[] retval = handle.getPageBuffer();
-	
-	fis.read(retval);
-	
-	return retval;
+    	if( file == null ) {
+    		throw new IOException("File not open");
+    	}
+    	
+		// Close all the references to this file
+		for(MDBHandle handle : handles){
+		    handle.close();
+		}
+		
+		file.close();
+		file = null;
     }
     
     public static void main(String[] args) throws Throwable {
-	MDBFile mdbFile = new MDBFile("EAReferenceModel.eap");
-	mdbFile.open(EMDBFileFlag.MDB_NOFLAGS);
-	mdbFile.close();
+		MDBFile mdbFile = new MDBFile("EAReferenceModel.eap");
+		mdbFile.open(EMDBFileFlag.MDB_WRITABLE);
+		mdbFile.close();
     }
     
 }
