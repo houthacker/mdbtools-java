@@ -9,8 +9,9 @@ public class Tools {
 	    throw new IllegalOffsetException("Cannot read an int from this offset (" + offset + ")");
 	}
 	
+	
 	int low = b[offset] & 0xff;
 	int high = b[offset + 1] & 0xff;
-	return (int) ( high << 8 | low );
+	return (int) ( high << 4 | low );
     }
 }

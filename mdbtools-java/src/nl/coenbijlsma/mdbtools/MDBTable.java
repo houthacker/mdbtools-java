@@ -7,7 +7,7 @@ public class MDBTable {
     private MDBCatalogEntry entry;
     private String name;
     private long numberOfCOlumns;
-    private ArrayList<Object> columns;
+    private ArrayList<MDBColumn> columns;
     private long numberOfRows;
     private int indexStart;
     private long numberOfRealIndexes;
@@ -33,9 +33,9 @@ public class MDBTable {
     private ArrayList<Object> tempTablePages;
     
     public MDBTable(){
-	columns = new ArrayList<Object>();
-	indexes = new ArrayList<Object>();
-	tempTablePages = new ArrayList<Object>();
+		columns = new ArrayList<MDBColumn>();
+		indexes = new ArrayList<Object>();
+		tempTablePages = new ArrayList<Object>();
     }
 
     public MDBCatalogEntry getEntry() {
@@ -62,11 +62,11 @@ public class MDBTable {
         this.numberOfCOlumns = numberOfCOlumns;
     }
 
-    public ArrayList<Object> getColumns() {
+    public ArrayList<MDBColumn> getColumns() {
         return columns;
     }
 
-    public void setColumns(ArrayList<Object> columns) {
+    public void setColumns(ArrayList<MDBColumn> columns) {
         this.columns = columns;
     }
 
@@ -252,6 +252,14 @@ public class MDBTable {
 
     public void setTempTablePages(ArrayList<Object> tempTablePages) {
         this.tempTablePages = tempTablePages;
+    }
+    
+    public ArrayList<MDBColumn> readColumns() {
+    	if( columns.size() > 0 ){
+    		return columns;
+    	}
+    	// TODO
+    	return columns;
     }
     
     

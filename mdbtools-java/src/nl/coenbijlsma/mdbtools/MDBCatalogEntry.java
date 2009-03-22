@@ -1,6 +1,11 @@
 package nl.coenbijlsma.mdbtools;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
+
+import nl.coenbijlsma.mdbtools.exceptions.IllegalOffsetException;
+import nl.coenbijlsma.mdbtools.tools.Tools;
 
 public class MDBCatalogEntry {
 
@@ -8,7 +13,7 @@ public class MDBCatalogEntry {
 	
     private MDBHandle handle;
     private String objectName;
-    private int objectType;
+    private EMDBEntity objectType;
     private long page;
     private long kkdPage;
     private long kkdRowID;
@@ -54,11 +59,11 @@ public class MDBCatalogEntry {
         this.objectName = objectName;
     }
 
-    public int getObjectType() {
+    public EMDBEntity getObjectType() {
         return objectType;
     }
 
-    public void setObjectType(int objectType) {
+    public void setObjectType(EMDBEntity objectType) {
         this.objectType = objectType;
     }
 
@@ -123,5 +128,65 @@ public class MDBCatalogEntry {
     		return null;
     	}
     	return typeNames[type];
+    }
+    
+    public MDBTable readTable() throws IOException {
+    	MDBTable table;
+    	MDBHandle handle = this.handle;    	
+    	MDBFormat format = handle.getFormat();
+    	RandomAccessFile file = handle.getMdbFile().getFile();
+    	int rowStart, pageRow;
+    	short len;
+    	Object buf; // ???
+    	byte[] pageBuffer;
+    	
+    	pageBuffer =handle.readPage((int)page, false);
+    	//pageBuffer = handle.getPageBuffer();
+    	file.seek(page * MDBHandle.MDB_PGSIZE);
+    	byte b = file.readByte();
+    	
+    	if( b != 2){
+    		// Invalid table definition
+    		System.out.println("Invalid table definition: " + b);
+    		return null;
+    	}
+    	
+    	table = getTable();
+    	file.seek(page * MDBHandle.MDB_PGSIZE + 8);
+    	len = file.readShort();
+    	
+    	System.out.println("len == " + len);
+    	
+    	//file.seek(page * MDBHandle.MDB_PGSIZE);
+    	//int rows = file.readInt();
+    	//try{
+    		//file.seek( (page * MDBHandle.MDB_PGSIZE) + handle.getFormat().getTableNumberOfRowsOffset());
+    		//System.out.println(file.getFilePointer());
+    		
+    		file.seek(page * MDBHandle.MDB_PGSIZE + 12);
+    		int rows = file.readInt();
+    		System.out.println(" rows == " + rows);
+    		
+    		//int rows = pageBuffer[12];
+    		//rows <<= 8;
+    		//rows |= pageBuffer[13];
+//    		short rows = file.readShort();
+    		
+//    		System.out.println(" rows == " + rows);
+    		
+	    	table.setNumberOfRows(rows);
+//    	}catch(IllegalOffsetException ex) {
+//    		ex.printStackTrace();
+//    	}
+    	// TODO
+    	return table;
+    }
+    
+    private MDBTable getTable(){
+    	MDBTable table = new MDBTable();
+    	table.setEntry(this);
+    	table.setName(objectName);
+    	
+    	return table;
     }
 }

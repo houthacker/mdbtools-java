@@ -20,8 +20,8 @@ public class MDBHandle {
     private long currentPosition;
     private byte[] pageBuffer;
     private byte[] alternatePageBuffer;
-    private long catalogNumber;
-    private ArrayList<Integer> catalog;
+    //private long catalogNumber;
+    private ArrayList<MDBCatalogEntry> catalog;
     private MDBBackend defaultBackend;
     private String backendName;
     private MDBFormat format;
@@ -30,7 +30,7 @@ public class MDBHandle {
     public MDBHandle(MDBFile file){
 		pageBuffer = new byte[MDB_PGSIZE];
 		alternatePageBuffer = new byte[MDB_PGSIZE];
-		catalog = new ArrayList<Integer>();
+		catalog = new ArrayList<MDBCatalogEntry>();
 		mdbFile = file;
 		mdbFile.addHandle(this);
 		stats = new MDBStatistics(true);
@@ -48,8 +48,9 @@ public class MDBHandle {
     }
     
     public byte[] readPage(int page, boolean alternate) throws IOException {
+    	System.out.println("MDBHandle::readPage(" + page + ", " + alternate + ")");
     	// Throw an IOException if the page is before the BOF
-    	if( page < 0L ){
+    	if( page < 0 ){
     		throw new IOException("Page " + page + " is before BOF");
     	}
     	
@@ -159,6 +160,7 @@ public class MDBHandle {
     	
     }
 
+    /*
     public long getCatalogNumber() {
         return catalogNumber;
     }
@@ -166,12 +168,13 @@ public class MDBHandle {
     public void setCatalogNumber(long catalogNumber) {
         this.catalogNumber = catalogNumber;
     }
+    */
 
-    public ArrayList<Integer> getCatalog() {
+    public ArrayList<MDBCatalogEntry> getCatalog() {
         return catalog;
     }
 
-    public void setCatalog(ArrayList<Integer> catalog) {
+    public void setCatalog(ArrayList<MDBCatalogEntry> catalog) {
         this.catalog = catalog;
     }
 
@@ -207,10 +210,15 @@ public class MDBHandle {
         this.stats = stats;
     }
     
-    public MDBTable getTableByName(String name, EMDBEntity entityType) {
+    public MDBTable getTableByName(String name, EMDBEntity entityType) throws IOException {
     	// TODO
-    	int i = 0;
-    	MDBCatalogEntry entry = new MDBCatalogEntry();
+    	MDBCatalogEntry entry;
+    	
+    	readCatalog(entityType);
+    	
+    	for(int i = 0; i < catalog.size(); i++) {
+    		entry = catalog.get(i);
+    	}
     	
     	// TODO mdb_read_catalog
     	return null;
@@ -218,5 +226,34 @@ public class MDBHandle {
     
     public void dumpStats() {
     	System.out.println("Physical Page Reads: " + stats.getPageReads());
+    }
+    
+    private void readCatalog(EMDBEntity entityType) throws IOException {
+    	MDBCatalogEntry entry = null, mysysobject = null;
+    	MDBTable table = null;
+    	String objectID;
+    	String objectName;
+    	String objectType;
+    	String objectFlags;
+    	int type = 0;
+    	
+    	if( catalog.size() > 0) {
+    		catalog = new ArrayList<MDBCatalogEntry>();
+    	}
+    	
+    	mysysobject = new MDBCatalogEntry();
+    	mysysobject.setHandle(this);
+    	mysysobject.setObjectType(EMDBEntity.MDBTable);
+    	mysysobject.setPage(2);
+    	mysysobject.setObjectName("MSysObjects");
+    	
+    	table = mysysobject.readTable();
+    	
+    	if( table == null ) {
+    		return;
+    	}
+    	
+    	table.readColumns();
+    	
     }
 }

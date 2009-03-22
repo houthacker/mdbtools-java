@@ -29,6 +29,7 @@ public class MDBFile {
     	
 		handles = new HashSet<MDBHandle>();
 		this.filename = filename;
+		this.stats = new MDBStatistics();
     }
     
     public void addHandle(MDBHandle handle){
@@ -155,9 +156,7 @@ public class MDBFile {
     	}
     	
 		// Close all the references to this file
-		for(MDBHandle handle : handles){
-		    handle.close();
-		}
+		handles.clear();
 		
 		file.close();
 		file = null;
@@ -165,7 +164,8 @@ public class MDBFile {
     
     public static void main(String[] args) throws Throwable {
 		MDBFile mdbFile = new MDBFile("EAReferenceModel.eap");
-		mdbFile.open(EMDBFileFlag.MDB_WRITABLE);
+		MDBHandle handle = mdbFile.open(EMDBFileFlag.MDB_WRITABLE);
+		handle.getTableByName("t_object", EMDBEntity.MDBTable);
 		mdbFile.close();
     }
     
